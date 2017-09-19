@@ -1,0 +1,1 @@
+backup perform --trigger mysqldump -c backup_ctl/Backup/config.rb

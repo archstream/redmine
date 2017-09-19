@@ -5,9 +5,11 @@ if Gem::Version.new(Bundler::VERSION) < Gem::Version.new('1.5.0')
 end
 
 gem "rails", "5.1.2"
+gem "backup", "~> 5.0.0.beta.2"
 gem "coderay", "~> 1.1.1"
 gem "request_store", "1.0.5"
-gem "mime-types", "~> 3.0"
+gem "mime-types", "~> 2.4.3"
+#gem "mime-types", "~> 3.0"
 gem "actionpack-xml_parser"
 gem "roadie-rails", "~> 1.2.1"
 gem "roadie", "~> 3.2.1"
@@ -80,6 +82,12 @@ end
 group :development do
   gem "rdoc", "~> 4.3"
   gem "yard"
+  gem 'capistrano', '~> 3.6'
+  gem 'capistrano-rails', '~> 1.3'
+  gem 'capistrano-bundler'
+  gem 'capistrano-rails-console'
+  gem 'capistrano-rvm', '~> 0.1.1'
+  gem 'capistrano-passenger'
 end
 
 group :test do
