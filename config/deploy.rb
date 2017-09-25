@@ -16,7 +16,7 @@ ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
 set :deploy_to, "/sites/redmine.townsquarecommerce.com"
 
 # Default value for :scm is :git
-set :scm, :git
+#set :scm, :git
 
 # Default value for :log_level is :debug
 set :log_level, :debug
