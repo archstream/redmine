@@ -4,7 +4,7 @@ SSHKit.config.command_map[:rake] = "bundle exec rake"
 # config valid only for current version of Capistrano
 lock "3.9.1"
 
-set :application, "my_app_name"
+set :application, "Redmine"
 set :passenger_restart_with_touch, true
 set :repo_url, 'git@github.com:archstream/redmine.git'
 set :tmp_dir, '/home/seizethedeal/tmp'
