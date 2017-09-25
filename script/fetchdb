@@ -1,0 +1,139 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'rubygems'
+require 'optparse'
+require 'fog'
+
+env = Hash.new
+
+HOME_DIR = File.expand_path('~')
+LOCAL_DB_DIR = env['local_dir'] = "#{HOME_DIR}/code/archstream/db-back"
+LOCAL_UNZIP_DIR = env['unzip_dir'] = "#{HOME_DIR}/code/archstream/db-back/redmine"
+BACKUP_BUCKET = 'redmine-production-dbbackup'
+MYSQL_DATABASE = env['database'] = 'redmine_development'
+MYSQL_USER = env['user'] = 'redmine'
+MYSQL_PASSWORD = env['password'] = 'redmine'
+
+options = OptionParser.new do |opts|
+  opts.on("-l", "--local-dir [DIR]", "Specify the local directory to download to") do |opt|
+    env['local_dir'] = opt
+  end
+  opts.on("-z", "--unzip-dir [DIR]", "Specify the local directory to unzip from") do |opt|
+    env['unzip_dir'] = opt
+  end
+  opts.on("-d", "--database [DB]", "Specify the database to restore to") do |opt|
+    env['database'] = opt
+  end
+  opts.on("-u", "--user [USER]", "Specify the user to restore with") do |opt|
+    env['user'] = opt
+  end
+  opts.on("-p", "--password [PASS]", "Specify the password to use when restoring") do |opt|
+    env['password'] = opt
+  end
+end
+
+# Run a command and raise an error if it failed
+def run(command)
+  result = system(command)
+  raise("error, process exited with status #{$?.exitstatus}") unless result
+end
+
+# Retrieve a single file from Cloudfiles
+def retrieve_file(container, key, location)
+  puts "Downloading the backup from Cloud Files"
+  File.open(location, 'w') do |f|
+    container.files.get("mysqldump/#{key}/mysqldump.tar.enc") do | data, remaining, content_length |
+      f.syswrite data
+    end
+  end
+end
+
+def decrypt_and_untar_file(key, infile)
+  puts "Decrypting input"
+  otfile = infile.gsub(/.enc/,'')
+  run("openssl aes-256-cbc -d -base64 -in #{infile} -out #{otfile}")
+  puts "tar -xvf #{otfile} -C #{LOCAL_DB_DIR}"
+  run("tar -xvf #{otfile} -C #{LOCAL_DB_DIR}")
+end
+
+begin
+  options.parse!(ARGV)
+  
+  # Connect to Cloud Files
+  service = Fog::Storage.new({
+	:provider            => 'Rackspace',         # Rackspace Fog provider
+	:rackspace_username  => 'cloud1000197ts', # Your Rackspace Username
+	:rackspace_api_key   => '2a68e340b087135c1548942f00a879d6',       # Your Rackspace API key
+	:rackspace_region    => :dfw,                # Defaults to :dfw
+	:connection_options  => {}                   # Optional
+  })
+  
+  # Connect to container
+  container = service.directories.get BACKUP_BUCKET
+
+  # List the files 
+  backup_files = container.files
+
+  # Iterate over the backup files, and push the times to an array
+  times = []
+  backup_files.each do |file|
+    times.push(file.key.split('/')[1])
+  end
+
+  # Sort the times, and construct the correct filename by using the most
+  # recent time
+  current_backup = "#{times.sort[-1]}"
+  print "Current backup: #{File.basename(current_backup)}\n"
+  
+  # Check to see if you already have the file
+  local_file = "#{env['local_dir']}/" + BACKUP_BUCKET + "_#{File.basename(current_backup)}.tar.enc"
+  zip_file = "#{env['unzip_dir']}/" + BACKUP_BUCKET + "_#{File.basename(current_backup).split(".")[0..-2].join(".")}"
+  
+  if !File.exist?(local_file)
+    # Download the file
+    retrieve_file(container, current_backup, local_file)
+    decrypt_and_untar_file(current_backup, local_file)
+  end
+  
+  puts "Beginning backup restore"
+  
+  # Unzip backup
+  puts "Unzipping backup"
+  cmd = "mkdir -p #{env['unzip_dir']}"
+  run cmd
+  cmd = "gunzip -c #{LOCAL_DB_DIR}/mysqldump/databases/MySQL.sql.gz > #{zip_file}"
+  puts cmd
+  run cmd
+
+  # Drop the existing DB
+  puts "Dropping the current database"
+  cmd = "mysqladmin -u#{env['user']} "
+  cmd += "-p'#{env['password']}' " unless env['password'].nil?
+  cmd += " drop #{env['database']}"
+  run cmd
+
+  # Recreate it
+  puts "Recreating database"
+  cmd = "mysqladmin -u#{env['user']} "
+  cmd += "-p'#{env['password']}' " unless env['password'].nil?
+  cmd += " create #{env['database']}"
+  run cmd
+  
+  # Restore the backup
+  puts "Restoring data to new database"
+  cmd =  "mysql -u#{env['user']} "
+  cmd += " -p'#{env['password']}' " unless env['password'].nil?
+  cmd += " #{env['database']}"
+  cmd += "< #{zip_file}"
+  run cmd
+  
+  # Cleaup
+  print "Cleaning up\n"
+  cmd = "rm -rf #{LOCAL_DB_DIR}/mysqldump/databases/MySQL.sql.gz"
+  run cmd
+  cmd = "rm -rf #{env['local_dir']}/" + BACKUP_BUCKET + "_#{File.basename(current_backup)}.tar.enc"
+  run cmd
+  cmd = "rm -rf #{env['unzip_dir']}/" + BACKUP_BUCKET + "_#{File.basename(current_backup).split(".")[0..-2].join(".")}"
+  run cmd
+end
