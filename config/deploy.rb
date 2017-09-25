@@ -27,7 +27,7 @@ set :pty, true
 set :user, "seizethedeal"
 set :group, "admin"
 set :use_sudo, false
-set :rails_env, "production"
+set :rails_env, "devserver"
 set :deploy_via, :copy
 
 # Default value for :linked_files is []

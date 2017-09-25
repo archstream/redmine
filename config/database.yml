@@ -10,6 +10,14 @@ production:
   password: d71459d4f8
   encoding: utf8
 
+devserver:
+  adapter: mysql2
+  database: redmine_production
+  host: localhost
+  username: redmine
+  password: d71459d4f8
+  encoding: utf8
+
 development:
   adapter: mysql2
   database: redmine_development
