@@ -1,0 +1,20 @@
+# Default setup is given for MySQL with ruby1.9.
+# Examples for PostgreSQL, SQLite3 and SQL Server can be found at the end.
+# Line indentation must be 2 spaces (no tabs).
+
+production:
+  adapter: mysql2
+  database: redmine_production
+  host: localhost
+  username: redmine
+  password: d71459d4f8
+  encoding: utf8
+
+development:
+  adapter: mysql2
+  database: redmine_development
+  host: localhost
+  username: redmine
+  password: redmine
+  encoding: utf8
+
