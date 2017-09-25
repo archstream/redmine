@@ -458,6 +458,7 @@ DEPENDENCIES
   capistrano-rvm (~> 0.1.1)
   capybara (~> 2.13)
   coderay (~> 1.1.1)
+  fog
   i18n (~> 0.7.0)
   json
   mime-types (~> 2.4.3)

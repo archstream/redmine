@@ -7,6 +7,7 @@ end
 gem "rails", "5.1.2"
 gem "backup", "~> 5.0.0.beta.2"
 gem "coderay", "~> 1.1.1"
+gem 'fog'
 gem "request_store", "1.0.5"
 gem "mime-types", "~> 2.4.3"
 #gem "mime-types", "~> 3.0"
